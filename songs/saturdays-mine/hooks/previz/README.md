@@ -7,6 +7,7 @@ three.js（0.128.0）で作った簡易3Dのカメラ参照。Seedanceに @動�
 | cut05_fpv_v1.html | ⑤ FPVフライイン（5秒、720x1280） |
 | cut05_fpv_v2.html | ⑤ v2：蛇行±2.0m・3往復、ロール最大約25度、終点を約0.5m寄せる、照明は灯体固定で10灯ずつ拍ごとに入れ替え |
 | cut05_fpv_v3.html | ⑤ v3：Hiro指定の2カーブ軌道（左の壁際で右下がり30度→水平→右の壁際で左下がり30度→水平でJamieへ）。v2の蛇行は酔うので廃止 |
+| cut05_fpv_v4.html | ⑤ v4：v3の軌道で、傾きを水平で止まらない一本の曲線に（右下がり30度→左下がり30度→終点で水平）。速さも単調3次補間でなめらかに |
 | render.js | 書き出し用。`npm pack three@0.128.0` を展開した `package/` と同じ場所で `node render.js <出力dir> 0,5 0.0333333` → ffmpegで30fpsの動画に |
 
 書き出した動画はDrive（Saturday's mine → Hooks 1サビ）に置く。

@@ -1,0 +1,9 @@
+# 画像・音声・動画はGoogle Driveに置く
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.png
+*.jpg
+*.jpeg
+.DS_Store

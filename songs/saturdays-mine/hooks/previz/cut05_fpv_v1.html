@@ -1,0 +1,117 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SM cut05 FPV previz</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script src="package/build/three.min.js"></script></head><body><canvas id="cv" width="720" height="1280"></canvas>
+<script>
+// 座標: ステージ前端 z=0、ステージ奥は z<0、客席は z>0。カメラは -z 方向を見る（画面右=+x）
+const W=720,H=1280,DUR=5.0,BEAT=60/201.1,PH=0.04; // PH: 最初の拍（クラッシュ）
+const cv=document.getElementById('cv');
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});R.setSize(W,H,false);
+R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.25;
+const S=new THREE.Scene();S.background=new THREE.Color(0x020203);S.fog=new THREE.FogExp2(0x08070a,0.035);
+const cam=new THREE.PerspectiveCamera(70,W/H,0.05,80);
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.85,metalness:0},o));
+const add=(m,x,y,z)=>{m.position.set(x,y,z);S.add(m);return m};
+const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+const cyl=(r1,r2,h,m,s=12)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
+const sph=(r,m)=>new THREE.Mesh(new THREE.SphereGeometry(r,14,10),m);
+
+// 会場（①-1準拠：横に広く前後に浅いステージ、黒カーテン、レンガ側壁、低い鉄骨天井）
+const SW=9.6,SD=3.4,SH=1.0,ROOM_W=11.5,CEIL=5.0;
+add(box(SW,SH,SD,M(0x1b1714)),0,SH/2,-SD/2);                 // ステージ
+add(box(ROOM_W,.02,26,M(0x0c0b0b)),0,0,8);                     // 客席の床
+add(box(SW,CEIL,.1,M(0x070707)),0,CEIL/2,-SD-.05);            // 黒カーテン
+for(const sx of[-1,1]){add(box(.2,CEIL,30,M(0x3a1f17)),sx*ROOM_W/2,CEIL/2,6);} // レンガ壁
+add(box(ROOM_W,.1,30,M(0x0d0c0b)),0,CEIL,6);                   // 天井
+const truss=M(0x2a2a2c,{metalness:.6,roughness:.4});
+for(const z of[-.3,-SD+.4,4,9]){add(box(ROOM_W,.12,.12,truss),0,4.35,z);}
+for(const sx of[-1,1])for(let z=-SD;z<14;z+=1.2)add(box(.08,.08,.08,truss),sx*4.6,4.35,z);
+// アンプ
+const amp=M(0x151515);
+add(box(.8,1.4,.5,amp),-3.9,SH+.7,-2.9);add(box(.7,.6,.45,amp),2.4,SH+.3,-2.6);add(box(.8,1.2,.5,amp),3.9,SH+.6,-2.9);
+add(box(.7,.5,.4,amp),-.9,SH+.25,-2.0); // モニター
+
+// 人物（簡易）
+function man(o){const g=new THREE.Group();const {shirt,pants,hair,skin=0xd8a888,big=1}=o;
+  const legs=new THREE.Group();g.add(legs);
+  for(const s of[-1,1]){const l=cyl(.08*big,.07*big,.85,M(pants));l.position.set(s*.11*big,.43,0);legs.add(l);}
+  const up=new THREE.Group();up.position.y=.86;g.add(up);
+  const t=box(.42*big,.6,.24*big,M(shirt));t.position.y=.3;up.add(t);
+  const hd=new THREE.Group();hd.position.y=.72;up.add(hd);
+  hd.add(sph(.12,M(skin)));const hr=sph(.15,M(hair));hr.scale.set(1,.85,1);hr.position.set(0,.05,.02);hd.add(hr);
+  for(const s of[-1,1]){const a=cyl(.05*big,.045,.55,M(o.arms?skin:shirt));a.position.set(s*.26*big,.25,.12);a.rotation.x=-1.0;up.add(a);}
+  g.userData={up,hd};return g}
+function guitar(c,len){const g=new THREE.Group();const b=box(.36,.42,.07,M(c,{roughness:.4}));g.add(b);const n=box(.06,.06,len,M(0x3a2a1a));n.position.set(0,.05,0);n.rotation.y=Math.PI/2;n.position.x=-len/2-.1;g.add(n);g.rotation.z=.35;return g}
+const band={};
+function place(name,x,z,o,inst){const m=man(o);m.position.set(x,SH,z);m.rotation.y=0;S.add(m);if(inst){inst.position.set(0,.45,.22);m.userData.up.add(inst);}band[name]=m;return m}
+place('ash',-3.0,-1.1,{shirt:0x111111,pants:0x151515,hair:0x0a0a0a},guitar(0x0d0d0d,.75));
+place('jamie',0,-.9,{shirt:0xe8e0d0,pants:0x4a6a90,hair:0xa07a48},guitar(0xb06a20,.6));
+place('simon',3.0,-1.1,{shirt:0x55603a,pants:0xa08058,hair:0x5a3a20},guitar(0x6a2a18,.6));
+const ron=place('ronnie',-1.3,-2.4,{shirt:0x2e2e30,pants:0x222222,hair:0x2a1a10,big:1.3,arms:true});ron.position.y=SH-.35; // 座り
+// ドラム
+const kit=new THREE.Group();kit.position.set(-1.3,SH,-1.85);S.add(kit);
+const bd=cyl(.32,.32,.4,M(0xd8cfc0),20);bd.rotation.x=Math.PI/2;bd.position.y=.32;kit.add(bd);
+for(const [x,y,z,r] of[[-.35,.75,.05,.15],[.3,.75,.05,.15],[.5,.5,-.2,.2]]){const t=cyl(r,r,.18,M(0x6a6a72,{metalness:.5}),16);t.position.set(x,y,z);kit.add(t);}
+const crash=cyl(.3,.3,.01,M(0xb89040,{metalness:.9,roughness:.3}),20);crash.position.set(-.7,1.35,.0);crash.rotation.z=.3;kit.add(crash);
+// マイクスタンド
+add(cyl(.012,.012,1.55,M(0x111111)),0,SH+.78,-.55);
+
+// 観客（シルエット）
+const aud=[];const dark=M(0x0a0908,{roughness:1});let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+for(let z=.9;z<13;z+=.55)for(let x=-4.9;x<=4.9;x+=.55){if(rnd()<.18)continue;const g=new THREE.Group();const h=1.5+rnd()*.3;
+  const b=box(.42,.5,.25,dark);b.position.y=h-.45;g.add(b);const hd=sph(.12,dark);hd.position.y=h-.05;g.add(hd);
+  const arms=[];if(rnd()<.35){for(const s of(rnd()<.5?[1]:[-1,1])){const a=cyl(.04,.04,.6,dark,6);a.position.set(s*.18,h+.15,0);a.rotation.z=-s*.25;g.add(a);arms.push(a);}}
+  g.position.set(x+(rnd()-.5)*.25,0,z+(rnd()-.5)*.2);S.add(g);aud.push({g,ph:rnd()*6.28,arms,base:g.position.y});}
+
+// 照明：演奏照明（暗い中の色付きスポット、スモーク、逆光）
+S.add(new THREE.AmbientLight(0x101018,.35));
+const COLS=[0xff2030,0x2050ff,0x20ff60,0xff20c0];
+const beams=[];
+const coneGeo=new THREE.ConeGeometry(1,1,24,1,true);coneGeo.translate(0,-.5,0);
+for(let i=0;i<8;i++){const x=-4+i*8/7;const z=(i%2?-.3:-SD+.4);
+  const fix=add(cyl(.12,.15,.25,M(0x111111,{metalness:.5})),x,4.2,z);
+  const mat=new THREE.MeshBasicMaterial({color:COLS[i%4],transparent:true,opacity:.10,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const cone=new THREE.Mesh(coneGeo,mat);cone.scale.set(.9,6,.9);cone.position.set(x,4.15,z);S.add(cone);
+  const sl=new THREE.SpotLight(COLS[i%4],0,14,.32,.6,1.2);sl.position.set(x,4.15,z);S.add(sl);S.add(sl.target);
+  beams.push({cone,sl,mat,x,z,i});}
+// 客席上を横切るビーム（後方トラス）
+for(let i=0;i<4;i++){const mat=new THREE.MeshBasicMaterial({color:COLS[(i+1)%4],transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const cone=new THREE.Mesh(coneGeo,mat);cone.scale.set(.7,9,.7);cone.position.set(-3+i*2,4.3,4);S.add(cone);beams.push({cone,mat,x:-3+i*2,z:4,i:i+8,aud:true});}
+const back=new THREE.SpotLight(0xffffff,2.2,12,.9,.5,1);back.position.set(0,4.2,-3.2);back.target.position.set(0,1.5,0);S.add(back);S.add(back.target);
+const front=new THREE.SpotLight(0xfff0e0,1.1,20,.5,.8,1);front.position.set(0,4.3,6);front.target.position.set(0,1.8,-1);S.add(front);S.add(front.target);
+const strobe=new THREE.PointLight(0xffffff,0,30);strobe.position.set(0,4,-1);S.add(strobe);
+
+// カメラ軌道：FPV風、客席後方の頭上から蛇行してステージ手前へ
+const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const lerp=(a,b,k)=>a+(b-a)*k,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const TEND=4.5; // 4.5秒で終点に到達
+function camAt(t){const p=clamp(t/TEND,0,1);const e=.15*ease(p)+.85*(1-Math.pow(1-p,1.6)); // 頭で一気に加速、最後に減速
+  const z=lerp(12.5,2.4,e);
+  const sway=Math.sin(e*Math.PI*2.5)*1.1*(1-e*.9); // 蛇行（左右に約2.5往復、終点に向けて収束）
+  const x=sway;
+  const y=lerp(2.9,2.55,e)+Math.sin(e*Math.PI*3)*.12*(1-e);
+  const dx=Math.cos(e*Math.PI*2.5)*1.1*(1-e*.9);
+  const roll=-dx*.10; // 曲がる方向に傾く
+  const tx=x*.25,ty=lerp(1.8,1.75,e),tz=-1.2;
+  return{x,y,z,tx,ty,tz,roll}}
+
+function beatF(t){const b=(t-PH)/BEAT;return{b,frac:((b%1)+1)%1,n:Math.floor(b)}}
+function render(t){const {b,frac,n}=beatF(t);
+  // 照明：拍ごとに色を切り替え、光の筋がゆっくり振れる
+  beams.forEach(o=>{const c=COLS[(o.i+n)%4];o.mat.color.setHex(c);const sw=Math.sin(t*1.6+o.i*1.3)*.45;
+    o.cone.rotation.set(sw*.6+(o.aud?.9:.35),0,Math.cos(t*1.3+o.i)*.4);o.mat.opacity=(o.aud?.06:.10)+.05*Math.pow(1-frac,3);
+    if(o.sl){o.sl.color.setHex(c);o.sl.intensity=3.2;const d=new THREE.Vector3(0,-1,0).applyEuler(o.cone.rotation);o.sl.target.position.set(o.x+d.x*5,4.15+d.y*5,o.z+d.z*5);}});
+  strobe.intensity=t<.08?2.5*(1-t/.08):0; // クラッシュの瞬間のストロボ
+  // バンドの縦ノリ（Ronnie ≧ Simon ≫ Ash）
+  const bounce=(amp,sh)=>Math.abs(Math.sin((b+sh)*Math.PI))*amp;
+  const B=band;B.jamie.userData.up.position.y=.86-bounce(.04,0);B.jamie.userData.hd.rotation.x=.08;
+  B.simon.userData.up.position.y=.86-bounce(.07,.1);B.simon.userData.hd.rotation.x=bounce(.45,.1)-.1;
+  B.ash.userData.up.position.y=.86-bounce(.03,.2);B.ash.userData.hd.rotation.x=bounce(.25,.2);
+  B.ronnie.userData.up.rotation.x=bounce(.18,.05)-.05;B.ronnie.userData.hd.rotation.x=bounce(.5,.05)-.15;
+  crash.rotation.x=t<.6?Math.sin(t*30)*.25*(1-t/.6):0;
+  // 観客が跳ねる
+  aud.forEach(a=>{a.g.position.y=Math.abs(Math.sin((b*.5)*Math.PI+a.ph))*.12;a.arms.forEach((ar,k)=>{ar.rotation.x=Math.sin(b*Math.PI+a.ph)*.3;})});
+  // カメラ
+  const c=camAt(t);cam.position.set(c.x,c.y,c.z);cam.lookAt(c.tx,c.ty,c.tz);cam.rotateZ(c.roll);
+  R.render(S,cam);}
+window.__seek=t=>render(t);render(0);
+</script></body></html>

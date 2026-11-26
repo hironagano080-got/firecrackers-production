@@ -24,7 +24,13 @@ songs/
       shotlist.md         構成表（カットの秒数・構図）
       prompts/            プロンプト（版ごとに別ファイル、v1, v2 …）
       logs/               試行ログ（1回の生成＝1項目）
+      previz/             3Dプレビズのソース（HTML）
+    suno/                 作曲の記録（歌詞、スタイルプロンプト、テイクの比較）
 ```
+
+## 曲
+- songs/anywhere-from-here/ … 1曲目「Anywhere from Here」（MV、Hooks）
+- songs/saturdays-mine/ … 2曲目「Saturday's Mine」（Suno作曲、Hooks）
 
 ## ルール
 
